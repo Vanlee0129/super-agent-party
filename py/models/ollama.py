@@ -3,9 +3,9 @@
 import json
 from typing import Any, AsyncIterator, Dict, List, Optional
 
-import httpx
+import aiohttp
 
-from .capabilities import MODELS, ModelInfo
+from .capabilities import MODELS, ModelCapability, ModelInfo
 from .config import (
     ChatCompletionRequest,
     ChatCompletionResponse,
@@ -29,21 +29,28 @@ class OllamaProvider(Provider):
             config: Provider configuration
         """
         super().__init__(config)
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: Optional[aiohttp.ClientSession] = None
         self.base_url = config.base_url or "http://localhost:11434"
 
     @property
     def provider_type(self) -> str:
         return "ollama"
 
-    def _get_client(self) -> httpx.AsyncClient:
+    async def _get_client(self) -> aiohttp.ClientSession:
         """Get or create HTTP client."""
-        if self._client is None:
-            self._client = httpx.AsyncClient(
+        if self._client is None or self._client.closed:
+            timeout = aiohttp.ClientTimeout(total=self.config.timeout)
+            self._client = aiohttp.ClientSession(
                 base_url=self.base_url,
-                timeout=self.config.timeout,
+                timeout=timeout,
             )
         return self._client
+
+    async def close(self) -> None:
+        """Close the HTTP client."""
+        if self._client and not self._client.closed:
+            await self._client.close()
+            self._client = None
 
     def _format_messages(
         self, messages: List[ChatMessage]
@@ -72,29 +79,30 @@ class OllamaProvider(Provider):
             "stream": request.stream,
         }
 
+        options: Dict[str, Any] = {}
+
         if request.temperature is not None:
-            payload["temperature"] = request.temperature
+            options["temperature"] = request.temperature
         elif model_config:
-            payload["temperature"] = model_config.temperature
+            options["temperature"] = model_config.temperature
 
         if request.max_tokens is not None:
-            payload["options"]["num_predict"] = request.max_tokens
+            options["num_predict"] = request.max_tokens
         elif model_config and model_config.max_tokens:
-            payload["options"] = {"num_predict": model_config.max_tokens}
+            options["num_predict"] = model_config.max_tokens
 
         if request.top_p is not None:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["top_p"] = request.top_p
+            options["top_p"] = request.top_p
         elif model_config:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["top_p"] = model_config.top_p
+            options["top_p"] = model_config.top_p
 
         if request.stop:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["stop"] = request.stop
+            options["stop"] = request.stop
         elif model_config and model_config.stop:
-            payload["options"] = payload.get("options", {})
-            payload["options"]["stop"] = model_config.stop
+            options["stop"] = model_config.stop
+
+        if options:
+            payload["options"] = options
 
         return payload
 
@@ -112,13 +120,13 @@ class OllamaProvider(Provider):
         Returns:
             Chat completion response
         """
-        client = self._get_client()
+        client = await self._get_client()
         payload = self._merge_config(request, model_config)
         payload["stream"] = False
 
-        response = await client.post("/api/chat", json=payload)
-        response.raise_for_status()
-        data = response.json()
+        async with client.post("/api/chat", json=payload) as response:
+            response.raise_for_status()
+            data = await response.json()
 
         # Convert Ollama response to standard format
         message = data.get("message", {})
@@ -162,14 +170,15 @@ class OllamaProvider(Provider):
         Yields:
             Stream chunks
         """
-        client = self._get_client()
+        client = await self._get_client()
         payload = self._merge_config(request, model_config)
         payload["stream"] = True
 
-        async with client.stream("POST", "/api/chat", json=payload) as response:
+        async with client.post("/api/chat", json=payload) as response:
             response.raise_for_status()
-            async for line in response.aiter_lines():
-                if not line.strip():
+            async for line in response.content:
+                line = line.decode("utf-8").strip()
+                if not line:
                     continue
 
                 try:
@@ -193,10 +202,10 @@ class OllamaProvider(Provider):
             List of available models
         """
         try:
-            client = self._get_client()
-            response = await client.get("/api/tags")
-            response.raise_for_status()
-            data = response.json()
+            client = await self._get_client()
+            async with client.get("/api/tags") as response:
+                response.raise_for_status()
+                data = await response.json()
 
             models = []
             for model_data in data.get("models", []):
@@ -225,12 +234,8 @@ class OllamaProvider(Provider):
             True if Ollama is running
         """
         try:
-            client = self._get_client()
-            response = await client.get("/api/tags")
-            return response.status_code == 200
+            client = await self._get_client()
+            async with client.get("/api/tags") as response:
+                return response.status == 200
         except Exception:
             return False
-
-
-# Import ModelCapability for list_models return
-from .capabilities import ModelCapability
