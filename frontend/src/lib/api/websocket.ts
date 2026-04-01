@@ -15,7 +15,11 @@ export interface WebSocketClientConfig {
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
   pingInterval?: number;
+  exponentialBackoff?: boolean;
+  maxReconnectDelay?: number;
 }
+
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting';
 
 type ConnectionHandler = () => void;
 type MessageHandler = (data: WSMessage) => void;
@@ -32,6 +36,8 @@ export class WebSocketClient {
     reject: (reason: Error) => void;
   }> = new Map();
   private isIntentionallyClosed = false;
+  private connectionStatus: ConnectionStatus = 'disconnected';
+  private statusChangeHandlers: Array<(status: ConnectionStatus) => void> = [];
 
   private onConnectHandlers: ConnectionHandler[] = [];
   private onDisconnectHandlers: ConnectionHandler[] = [];
@@ -41,9 +47,11 @@ export class WebSocketClient {
   constructor(config: WebSocketClientConfig) {
     this.config = {
       url: config.url,
-      reconnectInterval: config.reconnectInterval ?? 3000,
-      maxReconnectAttempts: config.maxReconnectAttempts ?? 5,
+      reconnectInterval: config.reconnectInterval ?? 1000,
+      maxReconnectAttempts: config.maxReconnectAttempts ?? 10,
       pingInterval: config.pingInterval ?? 30000,
+      exponentialBackoff: config.exponentialBackoff ?? true,
+      maxReconnectDelay: config.maxReconnectDelay ?? 30000,
     };
   }
 
@@ -58,6 +66,7 @@ export class WebSocketClient {
       }
 
       this.isIntentionallyClosed = false;
+      this.setConnectionStatus('connecting');
 
       try {
         this.ws = new WebSocket(this.config.url);
@@ -66,6 +75,7 @@ export class WebSocketClient {
         this.ws.onopen = () => {
           this.reconnectAttempts = 0;
           this.startPing();
+          this.setConnectionStatus('connected');
           this.onConnectHandlers.forEach((handler) => handler());
           resolve();
         };
@@ -206,10 +216,11 @@ export class WebSocketClient {
   }
 
   /**
-   * Schedule reconnection attempt
+   * Schedule reconnection attempt with exponential backoff
    */
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
+      this.setConnectionStatus('disconnected');
       return;
     }
 
@@ -218,13 +229,23 @@ export class WebSocketClient {
     }
 
     this.reconnectAttempts++;
+    this.setConnectionStatus('reconnecting');
+
+    // Calculate delay with exponential backoff
+    let delay = this.config.reconnectInterval;
+    if (this.config.exponentialBackoff) {
+      delay = Math.min(
+        delay * Math.pow(2, this.reconnectAttempts - 1),
+        this.config.maxReconnectDelay
+      );
+    }
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect().catch(() => {
         // Connection failed, scheduleReconnect will be called again from onclose
       });
-    }, this.config.reconnectInterval);
+    }, delay);
   }
 
   /**
@@ -287,5 +308,47 @@ export class WebSocketClient {
    */
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  /**
+   * Get current connection status
+   */
+  get status(): ConnectionStatus {
+    return this.connectionStatus;
+  }
+
+  /**
+   * Set connection status and notify listeners
+   */
+  private setConnectionStatus(status: ConnectionStatus): void {
+    this.connectionStatus = status;
+    this.statusChangeHandlers.forEach((handler) => handler(status));
+  }
+
+  /**
+   * Register status change event handler
+   */
+  onStatusChange(handler: (status: ConnectionStatus) => void): void {
+    this.statusChangeHandlers.push(handler);
+  }
+
+  /**
+   * Get reconnection info
+   */
+  getReconnectInfo(): { attempts: number; nextDelay: number | null; maxAttempts: number } {
+    let nextDelay: number | null = null;
+    if (this.reconnectAttempts < this.config.maxReconnectAttempts) {
+      nextDelay = this.config.exponentialBackoff
+        ? Math.min(
+            this.config.reconnectInterval * Math.pow(2, this.reconnectAttempts),
+            this.config.maxReconnectDelay
+          )
+        : this.config.reconnectInterval;
+    }
+    return {
+      attempts: this.reconnectAttempts,
+      nextDelay,
+      maxAttempts: this.config.maxReconnectAttempts,
+    };
   }
 }

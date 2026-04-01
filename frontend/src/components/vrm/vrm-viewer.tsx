@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, useGLTF, Center } from '@react-three/drei';
+import { OrbitControls, Environment, Center } from '@react-three/drei';
 import * as THREE from 'three';
-import { GLTF, VRM, VRMLoaderPlugin, VRMHumanBoneName } from '@pixiv/three-vrm';
+import { VRM, VRMLoaderPlugin } from '@pixiv/three-vrm';
 import { useVRMStore, BlendshapeName, AnimationType } from '@/lib/stores/vrm-store';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GLTFLoaderType = any;
 
 interface VRMModelProps {
   url: string;
@@ -22,7 +25,6 @@ function VRMModel({ url, blendshapes, animation, onLoaded, onError }: VRMModelPr
 
   useEffect(() => {
     let mounted = true;
-    const loader = new THREE.WebGLRenderer();
 
     const loadVRM = async () => {
       try {
@@ -30,24 +32,37 @@ function VRMModel({ url, blendshapes, animation, onLoaded, onError }: VRMModelPr
         if (!response.ok) throw new Error('Failed to fetch VRM model');
         const buffer = await response.arrayBuffer();
 
-        const gltf = new GLTF(buffer);
-        gltf.scene.traverse((obj) => {
-          obj.castShadow = true;
-          obj.receiveShadow = true;
-        });
+        // Dynamic import to avoid TypeScript module resolution issues
+        // @ts-ignore - three/examples/jsm doesn't have type declarations
+        const GLTFLoader = (await import('three/examples/jsm/loaders/GLTFLoader')).GLTFLoader;
+        const gltfLoader = new GLTFLoader();
+        gltfLoader.register((parser: any) => new VRMLoaderPlugin(parser));
 
-        const plugin = new VRMLoaderPlugin();
-        gltf.userData.vrm = plugin.getVRM(gltf);
+        gltfLoader.parse(
+          buffer,
+          '',
+          (gltf: { scene: THREE.Scene; userData: { vrm?: VRM } }) => {
+            gltf.scene.traverse((obj: THREE.Object3D) => {
+              obj.castShadow = true;
+              obj.receiveShadow = true;
+            });
 
-        if (gltf.userData.vrm) {
-          const vrm = gltf.userData.vrm as VRM;
-          vrmRef.current = vrm;
-          scene.add(vrm.scene);
+            const vrm = gltf.userData.vrm;
+            if (vrm) {
+              vrmRef.current = vrm;
+              scene.add(vrm.scene);
 
-          // Setup mixer for animations
-          mixerRef.current = new THREE.AnimationMixer(vrm.scene);
-          onLoaded();
-        }
+              // Setup mixer for animations
+              mixerRef.current = new THREE.AnimationMixer(vrm.scene);
+              onLoaded();
+            }
+          },
+          (error: GLTFLoaderType) => {
+            if (mounted) {
+              onError(error instanceof Error ? error.message : 'Failed to load VRM');
+            }
+          }
+        );
       } catch (err) {
         if (mounted) {
           onError(err instanceof Error ? err.message : 'Failed to load VRM');

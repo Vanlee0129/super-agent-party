@@ -1,13 +1,22 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useCodeStore } from '@/lib/stores/code-store';
-import { CodeEditor } from '@/components/code/code-editor';
 import { OutputPanel } from '@/components/code/output-panel';
 import { LanguageSelect } from '@/components/code/language-select';
 import { SandboxConfig } from '@/components/code/sandbox-config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { SkeletonCode } from '@/components/ui/skeleton';
+
+const CodeEditor = dynamic(
+  () => import('@/components/code/code-editor').then((mod) => mod.CodeEditor),
+  {
+    loading: () => <SkeletonCode />,
+    ssr: false,
+  }
+);
 
 export default function CodePage() {
   const {

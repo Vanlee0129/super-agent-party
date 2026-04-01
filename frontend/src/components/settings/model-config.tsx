@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ModelForm } from './model-form';
-import { useSettingsStore, ModelConfig } from '@/lib/stores/settings-store';
+import { useSettingsStore } from '@/lib/stores/settings-store';
+import type { ModelConfig } from '@/lib/stores/settings-store';
 
 const providerColors: Record<string, string> = {
   OpenAI: 'bg-green-500/10 text-green-500 border-green-500/20',

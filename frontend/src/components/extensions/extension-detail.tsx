@@ -59,13 +59,16 @@ export function ExtensionDetail({ extension, open, onOpenChange, onToggle }: Ext
               {extension.enabled ?? true ? 'Enabled' : 'Disabled'}
             </Button>
             {extension.repository && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={extension.repository} target="_blank" rel="noopener noreferrer">
-                  <Github className="h-4 w-4 mr-1" />
-                  Repository
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </a>
-              </Button>
+              <a
+                href={extension.repository}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+              >
+                <Github className="h-4 w-4 mr-1" />
+                Repository
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
             )}
           </div>
         </div>

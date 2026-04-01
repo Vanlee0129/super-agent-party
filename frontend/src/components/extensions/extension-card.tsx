@@ -64,16 +64,15 @@ export function ExtensionCard({ extension, onToggle, onConfigure, onDelete }: Ex
             <Settings className="h-4 w-4" />
           </Button>
           {extension.repository && (
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
+            <a
+              href={extension.repository}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-9 w-9"
               title="Repository"
             >
-              <a href={extension.repository} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
+              <ExternalLink className="h-4 w-4" />
+            </a>
           )}
           <Button
             variant="ghost"

@@ -26,7 +26,8 @@ export function UploadForm({ onUpload }: UploadFormProps) {
   const { handleSubmit } = useForm<UploadFormData>();
 
   const validateFiles = (files: FileList): string | null => {
-    for (const file of files) {
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) {
         return `File "${file.name}" is not supported. Allowed types: ${ALLOWED_EXTENSIONS.join(', ')}`;

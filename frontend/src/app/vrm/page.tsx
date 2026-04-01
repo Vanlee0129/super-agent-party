@@ -1,6 +1,15 @@
 'use client';
 
-import { VRMPanel } from '@/components/vrm/vrm-panel';
+import dynamic from 'next/dynamic';
+import { SkeletonVRM } from '@/components/ui/skeleton';
+
+const VRMPanel = dynamic(
+  () => import('@/components/vrm/vrm-panel').then((mod) => mod.VRMPanel),
+  {
+    loading: () => <SkeletonVRM />,
+    ssr: false,
+  }
+);
 
 export default function VRMPage() {
   return (

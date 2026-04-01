@@ -5,9 +5,10 @@ import { Menu, Sun, Moon, Monitor } from 'lucide-react';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useSettingsStore } from '@/lib/stores/settings-store';
 import { Button } from '@/components/ui/button';
+import { ConnectionStatusIndicator } from '@/components/ui/connection-status';
 
 export function Header() {
-  const { toggleSidebar } = useUIStore();
+  const { toggleSidebar, connectionStatus } = useUIStore();
   const { settings, updateSettings } = useSettingsStore();
 
   const cycleTheme = () => {
@@ -32,9 +33,12 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between h-16 px-4 border-b bg-card">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-        <Menu className="h-5 w-5" />
-      </Button>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+          <Menu className="h-5 w-5" />
+        </Button>
+        <ConnectionStatusIndicator status={connectionStatus} />
+      </div>
       <Button variant="ghost" size="icon" onClick={cycleTheme}>
         <ThemeIcon />
       </Button>

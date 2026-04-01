@@ -5,10 +5,12 @@ import { X, FileText, Calendar, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SearchResult } from '@/lib/stores/knowledge-store';
+import { Document, SearchResult } from '@/lib/stores/knowledge-store';
+
+type DocumentLike = Document | SearchResult;
 
 interface DocumentViewerProps {
-  document: SearchResult | null;
+  document: DocumentLike | null;
   onClose: () => void;
 }
 
@@ -50,8 +52,8 @@ export function DocumentViewer({ document, onClose }: DocumentViewerProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link className="h-4 w-4" />
-            <span className="truncate" title={document.metadata?.file_path}>
-              {document.metadata?.file_path || 'Unknown path'}
+            <span className="truncate" title={'file_path' in document ? document.file_path : document.metadata?.file_path}>
+              {'file_path' in document ? document.file_path : document.metadata?.file_path || 'Unknown path'}
             </span>
           </div>
 

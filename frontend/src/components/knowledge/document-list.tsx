@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileText, Calendar, Score } from 'lucide-react';
+import { FileText, Calendar, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useKnowledgeStore, SearchResult } from '@/lib/stores/knowledge-store';
@@ -51,7 +51,7 @@ export function DocumentList({ onSelectDocument }: DocumentListProps) {
               </div>
               {doc.relevance_score !== undefined && (
                 <Badge variant="secondary" className="ml-2">
-                  <Score className="h-3 w-3 mr-1" />
+                  <Star className="h-3 w-3 mr-1" />
                   {(doc.relevance_score * 100).toFixed(0)}%
                 </Badge>
               )}

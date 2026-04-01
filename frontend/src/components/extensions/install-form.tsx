@@ -145,11 +145,12 @@ export function InstallForm({ open, onOpenChange }: InstallFormProps) {
                 Drag and drop a ZIP file here, or click to browse
               </p>
               <input type="file" accept=".zip" className="hidden" id="zip-upload" />
-              <Button variant="outline" asChild>
-                <label htmlFor="zip-upload" className="cursor-pointer">
-                  Browse Files
-                </label>
-              </Button>
+              <label
+                htmlFor="zip-upload"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 cursor-pointer"
+              >
+                Browse Files
+              </label>
             </div>
             <p className="text-xs text-muted-foreground text-center">
               ZIP files should contain index.html, index.js, or package.json at the root level.

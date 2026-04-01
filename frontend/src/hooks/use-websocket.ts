@@ -3,12 +3,13 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { WebSocketClient } from '../lib/api/websocket';
+import { WebSocketClient, ConnectionStatus } from '../lib/api/websocket';
 import { JSONRPCResponse, WSMessage } from '../lib/api/json-rpc';
 import { useUIStore } from '../lib/stores/ui-store';
 
 interface UseWebSocketReturn {
   isConnected: boolean;
+  status: ConnectionStatus;
   error: Event | null;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -16,14 +17,17 @@ interface UseWebSocketReturn {
   request: (method: string, params?: Record<string, unknown> | unknown[]) => Promise<JSONRPCResponse>;
   client: WebSocketClient | null;
   onMessage: (handler: (data: WSMessage) => void) => () => void;
+  reconnectInfo: { attempts: number; nextDelay: number | null; maxAttempts: number };
 }
 
 export function useWebSocket(): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [error, setError] = useState<Event | null>(null);
+  const [reconnectInfo, setReconnectInfo] = useState({ attempts: 0, nextDelay: null as number | null, maxAttempts: 10 });
   const clientRef = useRef<WebSocketClient | null>(null);
   const messageHandlersRef = useRef<Set<(data: WSMessage) => void>>(new Set());
-  const setConnectionState = useUIStore((state) => state.setActiveMenu);
+  const setConnectionStatus = useUIStore((state) => state.setConnectionStatus);
 
   // Initialize WebSocket client
   useEffect(() => {
@@ -42,12 +46,18 @@ export function useWebSocket(): UseWebSocketReturn {
     client.onConnect(() => {
       setIsConnected(true);
       setError(null);
-      setConnectionState('connected');
+      setConnectionStatus('connected');
     });
 
     client.onDisconnect(() => {
       setIsConnected(false);
-      setConnectionState('disconnected');
+      setConnectionStatus('disconnected');
+    });
+
+    // Listen for status changes
+    client.onStatusChange((newStatus) => {
+      setStatus(newStatus);
+      setReconnectInfo(client.getReconnectInfo());
     });
 
     client.onError((err) => {
@@ -61,8 +71,9 @@ export function useWebSocket(): UseWebSocketReturn {
     return () => {
       client.disconnect();
       clientRef.current = null;
+      setConnectionStatus('disconnected');
     };
-  }, [setConnectionState]);
+  }, [setConnectionStatus]);
 
   const connect = useCallback(async () => {
     if (clientRef.current) {
@@ -106,6 +117,7 @@ export function useWebSocket(): UseWebSocketReturn {
 
   return {
     isConnected,
+    status,
     error,
     connect,
     disconnect,
@@ -113,5 +125,6 @@ export function useWebSocket(): UseWebSocketReturn {
     request,
     client: clientRef.current,
     onMessage,
+    reconnectInfo,
   };
 }
