@@ -9,7 +9,7 @@ import { SearchBar } from '@/components/knowledge/search-bar';
 import { DocumentList } from '@/components/knowledge/document-list';
 import { DocumentViewer } from '@/components/knowledge/document-viewer';
 import { UploadForm } from '@/components/knowledge/upload-form';
-import { useKnowledgeStore, SearchResult } from '@/lib/stores/knowledge-store';
+import { useKnowledgeStore, SearchResult, Document } from '@/lib/stores/knowledge-store';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -81,7 +81,17 @@ export default function KnowledgePage() {
   }, [API_BASE]);
 
   const handleSelectDocument = useCallback((doc: SearchResult) => {
-    setSelectedDocument(doc);
+    // Convert SearchResult to Document format
+    const document: Document = {
+      id: doc.id,
+      title: doc.title,
+      content: doc.content,
+      file_path: doc.metadata.file_path,
+      file_name: doc.metadata.file_name,
+      created_at: '', // Search results don't have created_at
+      relevance_score: doc.relevance_score,
+    };
+    setSelectedDocument(document);
   }, [setSelectedDocument]);
 
   const handleCloseDocument = useCallback(() => {
