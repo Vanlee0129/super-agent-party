@@ -36,7 +36,7 @@ export const JSONRPC_ERRORS = {
 } as const;
 
 // WebSocket message types
-export type WSMessage = JSONRPCRequest | JSONRPCResponse | ArrayBuffer | ping | pong;
+export type WSMessage = JSONRPCRequest | JSONRPCResponse | ArrayBuffer | string | ping | pong;
 
 // Ping message type
 export interface ping {
