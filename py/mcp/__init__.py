@@ -8,6 +8,7 @@ from py.mcp.protocol import (
     parse_response,
 )
 from py.mcp.client import MCPClient
+from py.mcp.server import MCPServer
 
 __all__ = [
     "MCPMethod",
@@ -16,4 +17,5 @@ __all__ = [
     "create_request",
     "parse_response",
     "MCPClient",
+    "MCPServer",
 ]

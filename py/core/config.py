@@ -35,6 +35,7 @@ else:
 
 # Core directories
 DATABASE_PATH = os.path.join(USER_DATA_DIR, "super_agent_party.db")
+COVS_PATH = os.path.join(USER_DATA_DIR, "conversations.db")
 MEMORY_CACHE_DIR = os.path.join(USER_DATA_DIR, "memory_cache")
 UPLOAD_FILES_DIR = os.path.join(USER_DATA_DIR, "uploaded_files")
 AGENT_DIR = os.path.join(USER_DATA_DIR, "agents")
