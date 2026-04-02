@@ -14,14 +14,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/vrm", tags=["vrm"])
 
-# Global instances
+# Global instances - lazily initialized
 _model_manager: Optional[VRMModelManager] = None
 _animation_controller: Optional[AnimationController] = None
 _vrm_tts: Optional[VRMTTS] = None
 
 
 def get_model_manager() -> VRMModelManager:
-    """Get or create VRM model manager."""
     global _model_manager
     if _model_manager is None:
         _model_manager = get_vrm_model_manager()
@@ -29,7 +28,6 @@ def get_model_manager() -> VRMModelManager:
 
 
 def get_animation_controller() -> AnimationController:
-    """Get or create animation controller."""
     global _animation_controller
     if _animation_controller is None:
         _animation_controller = AnimationController()
@@ -37,7 +35,6 @@ def get_animation_controller() -> AnimationController:
 
 
 def get_vrm_tts() -> VRMTTS:
-    """Get or create VRM TTS instance."""
     global _vrm_tts
     if _vrm_tts is None:
         _vrm_tts = VRMTTS()

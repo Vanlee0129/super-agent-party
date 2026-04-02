@@ -4,7 +4,23 @@ import logging
 from typing import Dict, Optional, Any
 from datetime import datetime
 
+from py.feishu_bot_manager import FeishuBotManager, FeishuBotConfig
+from py.qq_bot_manager import QQBotManager, QQBotConfig
+from py.discord_bot_manager import DiscordBotManager, DiscordBotConfig
+from py.slack_bot_manager import SlackBotManager, SlackBotConfig
+from py.dingtalk_bot_manager import DingtalkBotManager, DingtalkBotConfig
+from py.telegram_bot_manager import TelegramBotManager, TelegramBotConfig
+
 logger = logging.getLogger(__name__)
+
+PLATFORM_CONFIGS = {
+    "feishu": (FeishuBotManager, FeishuBotConfig),
+    "qq": (QQBotManager, QQBotConfig),
+    "discord": (DiscordBotManager, DiscordBotConfig),
+    "slack": (SlackBotManager, SlackBotConfig),
+    "dingtalk": (DingtalkBotManager, DingtalkBotConfig),
+    "telegram": (TelegramBotManager, TelegramBotConfig),
+}
 
 
 class BotManagerAdapter:
@@ -25,29 +41,8 @@ class BotManagerAdapter:
         """Start the bot with optional config."""
         try:
             if config:
-                # Convert dict config to platform-specific config if needed
-                from py.feishu_bot_manager import FeishuBotConfig
-                from py.qq_bot_manager import QQBotConfig
-                from py.discord_bot_manager import DiscordBotConfig
-                from py.slack_bot_manager import SlackBotConfig
-                from py.dingtalk_bot_manager import DingtalkBotConfig
-                from py.telegram_bot_manager import TelegramBotConfig
-
-                config_map = {
-                    "feishu": FeishuBotConfig,
-                    "qq": QQBotConfig,
-                    "discord": DiscordBotConfig,
-                    "slack": SlackBotConfig,
-                    "dingtalk": DingtalkBotConfig,
-                    "telegram": TelegramBotConfig,
-                }
-
-                config_model = config_map.get(self.platform)
-                if config_model:
-                    config_obj = config_model(**config.get("config", config))
-                else:
-                    config_obj = config
-
+                config_model = PLATFORM_CONFIGS.get(self.platform, (None, None))[1]
+                config_obj = config_model(**config.get("config", config)) if config_model else config
                 self._manager.start_bot(config_obj)
             else:
                 self._manager.start_bot(None)
@@ -173,30 +168,9 @@ def get_supported_platforms() -> list:
 
 
 def initialize_managers() -> None:
-    """Initialize and register all bot managers.
-
-    This should be called at server startup to register all available
-    bot platform managers.
-    """
-    from py.feishu_bot_manager import FeishuBotManager
-    from py.qq_bot_manager import QQBotManager
-    from py.discord_bot_manager import DiscordBotManager
-    from py.slack_bot_manager import SlackBotManager
-    from py.dingtalk_bot_manager import DingtalkBotManager
-    from py.telegram_bot_manager import TelegramBotManager
-
-    managers = {
-        "feishu": FeishuBotManager,
-        "qq": QQBotManager,
-        "discord": DiscordBotManager,
-        "slack": SlackBotManager,
-        "dingtalk": DingtalkBotManager,
-        "telegram": TelegramBotManager,
-    }
-
-    for platform, manager_class in managers.items():
+    """Initialize and register all bot managers."""
+    for platform, (manager_class, _) in PLATFORM_CONFIGS.items():
         try:
-            instance = manager_class()
-            BotRegistry.register(platform, instance)
+            BotRegistry.register(platform, manager_class())
         except Exception as e:
             logger.warning(f"Could not register {platform} manager: {e}")

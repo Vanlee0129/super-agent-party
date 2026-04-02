@@ -47,6 +47,19 @@ class ChatWebSocket:
         """Handle client disconnection."""
         logger.info(f"Client {self.client_id} disconnected")
 
+    def _add_message_to_history(self, conversation_id: str, role: str, content: str) -> tuple[str, float]:
+        """Add a message to history and return (msg_id, timestamp)."""
+        from py.chat.history import ChatHistory
+        msg_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow().timestamp()
+        ChatHistory.add_message(conversation_id, {
+            "id": msg_id,
+            "role": role,
+            "content": content,
+            "timestamp": timestamp,
+        })
+        return msg_id, timestamp
+
     async def handle_message(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle incoming JSON-RPC message."""
         if not isinstance(data, dict):
@@ -74,7 +87,6 @@ class ChatWebSocket:
     async def _handle_chat_send(self, jsonrpc_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
         """Handle non-streaming chat.send."""
         from py.chat.streamer import ChatStreamer
-        from py.chat.history import ChatHistory
 
         message = params.get("message", "")
         model = params.get("model", "gpt-4")
@@ -84,18 +96,9 @@ class ChatWebSocket:
         if not message:
             return self._error_response(jsonrpc_id, JSONRPC_ERRORS["INVALID_PARAMS"], "Message is required")
 
-        # Create message ID and timestamp
-        msg_id = str(uuid.uuid4())
-        timestamp = datetime.utcnow().timestamp()
-
         # Add user message to history
         if conversation_id:
-            ChatHistory.add_message(conversation_id, {
-                "id": msg_id,
-                "role": "user",
-                "content": message,
-                "timestamp": timestamp,
-            })
+            self._add_message_to_history(conversation_id, "user", message)
 
         # Get streaming response
         streamer = ChatStreamer()
@@ -105,16 +108,11 @@ class ChatWebSocket:
                 response_text += chunk.get("content", "")
 
         # Create assistant message
-        assistant_id = str(uuid.uuid4())
-        assistant_timestamp = datetime.utcnow().timestamp()
-
         if conversation_id:
-            ChatHistory.add_message(conversation_id, {
-                "id": assistant_id,
-                "role": "assistant",
-                "content": response_text,
-                "timestamp": assistant_timestamp,
-            })
+            assistant_id, assistant_timestamp = self._add_message_to_history(conversation_id, "assistant", response_text)
+        else:
+            assistant_id = str(uuid.uuid4())
+            assistant_timestamp = datetime.utcnow().timestamp()
 
         return {
             "jsonrpc": "2.0",
@@ -131,36 +129,21 @@ class ChatWebSocket:
 
     async def _handle_chat_stream(self, jsonrpc_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
         """Handle streaming chat.stream - returns immediately, client should listen for chunks."""
-        from py.chat.streamer import ChatStreamer
-        from py.chat.history import ChatHistory
-
         message = params.get("message", "")
-        model = params.get("model", "gpt-4")
         conversation_id = params.get("conversation_id")
-        provider = params.get("provider", "openai")
 
         if not message:
             return self._error_response(jsonrpc_id, JSONRPC_ERRORS["INVALID_PARAMS"], "Message is required")
 
-        # Create message ID and timestamp
-        msg_id = str(uuid.uuid4())
-        timestamp = datetime.utcnow().timestamp()
-
         # Add user message to history
         if conversation_id:
-            ChatHistory.add_message(conversation_id, {
-                "id": msg_id,
-                "role": "user",
-                "content": message,
-                "timestamp": timestamp,
-            })
+            self._add_message_to_history(conversation_id, "user", message)
             self.conversation_id = conversation_id
 
         # Return stream ID for client to subscribe
         stream_id = str(uuid.uuid4())
         self._streaming = True
 
-        # Return immediately with stream info
         return {
             "jsonrpc": "2.0",
             "id": jsonrpc_id,

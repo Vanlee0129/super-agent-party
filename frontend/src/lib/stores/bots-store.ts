@@ -67,50 +67,6 @@ export const PLATFORM_NAMES: Record<BotPlatform, string> = {
   telegram: 'Telegram',
 };
 
-// Platform icons (lucide-react icon names)
-export const PLATFORM_ICONS: Record<BotPlatform, string> = {
-  feishu: 'MessageCircle',
-  qq: 'MessageCircle',
-  discord: 'MessageCircle',
-  slack: 'MessageCircle',
-  dingtalk: 'MessageCircle',
-  telegram: 'MessageCircle',
-};
-
-// API endpoints for each platform
-export const PLATFORM_ENDPOINTS: Record<BotPlatform, { start: string; stop: string; status: string }> = {
-  feishu: {
-    start: '/start_feishu_bot',
-    stop: '/stop_feishu_bot',
-    status: '/feishu_bot_status',
-  },
-  qq: {
-    start: '/start_qq_bot',
-    stop: '/stop_qq_bot',
-    status: '/qq_bot_status',
-  },
-  discord: {
-    start: '/start_discord_bot',
-    stop: '/stop_discord_bot',
-    status: '/discord_bot_status',
-  },
-  slack: {
-    start: '/start_slack_bot',
-    stop: '/stop_slack_bot',
-    status: '/slack_bot_status',
-  },
-  dingtalk: {
-    start: '/start_dingtalk_bot',
-    stop: '/stop_dingtalk_bot',
-    status: '/dingtalk_bot_status',
-  },
-  telegram: {
-    start: '/start_telegram_bot',
-    stop: '/stop_telegram_bot',
-    status: '/telegram_bot_status',
-  },
-};
-
 // Default config for each platform
 export const DEFAULT_CONFIGS: Record<BotPlatform, BotConfig> = {
   feishu: {
