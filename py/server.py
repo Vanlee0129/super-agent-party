@@ -17,6 +17,12 @@ from py.plugins.hooks import hooks, Hook
 from py.skills import SkillManager
 from py.mcp.client import MCPClient
 from py.models import setup_providers, registry as model_registry
+from py.bots.api import router as bots_router
+from py.bots.registry import initialize_managers, BotRegistry
+from py.chat.routes import router as chat_router
+from py.chat.websocket_handler import ChatWebSocketManager
+from py.chat.history import ChatHistory
+from py.chat.streamer import ChatStreamer
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +87,9 @@ async def lifespan(app: FastAPI):
 
     # Setup model providers
     setup_providers()
+    logger.info("Initializing bot managers...")
+    initialize_managers()
+    logger.info(f"Bot managers initialized: {BotRegistry.list_platforms()}")
     logger.info("Model providers initialized")
 
     # Emit after_startup hook
@@ -124,6 +133,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include bot management router
+app.include_router(bots_router)
+
+# Include chat API router
+app.include_router(chat_router)
 
 
 # ==================== HTTP Endpoints ====================
