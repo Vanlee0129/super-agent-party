@@ -9983,7 +9983,7 @@ from py.extensions.api import router as extensions_router
 
 app.include_router(extensions_router)
 
-from py.skills import router as skills_router
+from py.skills_api import router as skills_router
 
 app.include_router(skills_router)
 

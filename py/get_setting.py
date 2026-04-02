@@ -48,6 +48,11 @@ EXT_DIR = _EXT_DIR
 # Legacy path definitions not in config.py
 LOG_DIR = os.path.join(USER_DATA_DIR, 'logs')
 TOOL_TEMP_DIR = os.path.join(USER_DATA_DIR, 'tool_temp')
+DEFAULT_ASR_DIR = os.path.join(USER_DATA_DIR, 'asr')
+DEFAULT_EBD_DIR = os.path.join(USER_DATA_DIR, 'ebd')
+
+# Blocklist for URL/IP blocking (loaded at startup in server.py)
+BLOCKLIST = set()
 
 # ---- Additional utilities from the legacy get_setting.py ----
 
