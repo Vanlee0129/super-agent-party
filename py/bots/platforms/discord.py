@@ -217,6 +217,34 @@ class DiscordBotPlugin(BotPlatformPlugin):
             logger.error(f"Failed to send message: {e}")
         return False
 
+    # Sync compatibility methods for BotManagerAdapter
+    @property
+    def is_running(self) -> bool:
+        """Return True if bot is running."""
+        return self._is_running
+
+    def start_bot(self, config) -> None:
+        """Start the bot (sync wrapper for BotManagerAdapter)."""
+        if self._is_running:
+            return
+        config_dict = config.__dict__ if hasattr(config, '__dict__') else dict(config)
+        asyncio.run(self._initialize(config_dict))
+        asyncio.run(self._start())
+
+    def stop_bot(self) -> None:
+        """Stop the bot (sync wrapper for BotManagerAdapter)."""
+        if not self._is_running and not self.bot_thread:
+            return
+        asyncio.run(self._stop())
+
+    def get_status(self) -> dict:
+        """Get bot status (sync wrapper for BotManagerAdapter)."""
+        return {
+            "is_running": self._is_running,
+            "thread_alive": self.bot_thread.is_alive() if self.bot_thread else False,
+            "startup_error": self._startup_error,
+        }
+
 
 class DiscordClient(discord.Client):
     """Discord client implementation."""

@@ -4,22 +4,22 @@ import logging
 from typing import Dict, Optional, Any
 from datetime import datetime
 
-from py.feishu_bot_manager import FeishuBotManager, FeishuBotConfig
-from py.qq_bot_manager import QQBotManager, QQBotConfig
-from py.discord_bot_manager import DiscordBotManager, DiscordBotConfig
-from py.slack_bot_manager import SlackBotManager, SlackBotConfig
-from py.dingtalk_bot_manager import DingtalkBotManager, DingtalkBotConfig
-from py.telegram_bot_manager import TelegramBotManager, TelegramBotConfig
+from py.bots.platforms.feishu import FeishuBotPlugin, FeishuBotConfig
+from py.bots.platforms.qq import QQBotPlugin, QQBotConfig
+from py.bots.platforms.discord import DiscordBotPlugin, DiscordBotConfig
+from py.bots.platforms.slack import SlackBotPlugin, SlackBotConfig
+from py.bots.platforms.dingtalk import DingtalkBotPlugin, DingtalkBotConfig
+from py.bots.platforms.telegram import TelegramBotPlugin, TelegramBotConfig
 
 logger = logging.getLogger(__name__)
 
 PLATFORM_CONFIGS = {
-    "feishu": (FeishuBotManager, FeishuBotConfig),
-    "qq": (QQBotManager, QQBotConfig),
-    "discord": (DiscordBotManager, DiscordBotConfig),
-    "slack": (SlackBotManager, SlackBotConfig),
-    "dingtalk": (DingtalkBotManager, DingtalkBotConfig),
-    "telegram": (TelegramBotManager, TelegramBotConfig),
+    "feishu": (FeishuBotPlugin, FeishuBotConfig),
+    "qq": (QQBotPlugin, QQBotConfig),
+    "discord": (DiscordBotPlugin, DiscordBotConfig),
+    "slack": (SlackBotPlugin, SlackBotConfig),
+    "dingtalk": (DingtalkBotPlugin, DingtalkBotConfig),
+    "telegram": (TelegramBotPlugin, TelegramBotConfig),
 }
 
 
