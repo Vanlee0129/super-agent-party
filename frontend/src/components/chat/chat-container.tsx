@@ -3,6 +3,7 @@
 import React from 'react';
 import { useChatStore } from '@/lib/stores/chat-store';
 import { useWebSocket } from '@/hooks/use-websocket';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { ChatHeader } from './chat-header';
 import { MessageList } from './message-list';
 import { ChatInput } from './chat-input';
@@ -11,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 export function ChatContainer() {
   const { addMessage, setLoading, isLoading } = useChatStore();
   const { sendMessage, isConnected } = useWebSocket();
+  const keyboardHeight = useKeyboardHeight();
 
   const handleSend = (content: string) => {
     if (!isConnected) return;
@@ -27,7 +29,10 @@ export function ChatContainer() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full"
+      style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight : undefined }}
+    >
       <ChatHeader />
       <MessageList />
       {isLoading && (
