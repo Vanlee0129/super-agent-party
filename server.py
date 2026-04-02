@@ -728,7 +728,7 @@ async def lifespan(app: FastAPI):
     # --- [Phase 2 Startup: Initialize bot managers] ---
     try:
         from py.bots.registry import initialize_managers
-        await initialize_managers()
+        initialize_managers()
         logger.info("Bot managers initialized")
     except Exception as e:
         logger.error(f"Failed to initialize bot managers: {e}")
@@ -10010,6 +10010,8 @@ from py.bots.api import router as bots_router
 from py.knowledge.api import router as knowledge_router
 from py.search.api import router as search_router
 from py.code.api import router as code_router
+from py.settings.api import router as settings_router
+from py.tasks.api import router as tasks_router
 
 # Include Phase 2 routers (each router has its own prefix defined internally)
 app.include_router(chat_router)
@@ -10018,6 +10020,8 @@ app.include_router(bots_router)
 app.include_router(knowledge_router)
 app.include_router(search_router)
 app.include_router(code_router)
+app.include_router(settings_router)
+app.include_router(tasks_router)
 
 mcp = FastApiMCP(
     app,
