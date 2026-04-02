@@ -3,7 +3,7 @@
   "version": "v0.4.0-beta.1",
   "description": "超级智能体派对v0.4.0-beta.1 | 轻松链接一切!",
   "main": "main.js",
-  "asar": true, 
+  "asar": true,
   "scripts": {
     "start": "node start.js",
     "dev": "node start.js",
@@ -12,7 +12,11 @@
     "build:win": "electron-builder -w",
     "build:mac": "electron-builder -m",
     "build:linux": "electron-builder -l",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:bundle": "tauri build",
+    "tauri:check": "cargo check --manifest-path src-tauri/Cargo.toml"
   },
   "keywords": [
     "AI",
@@ -135,10 +139,12 @@
       "uninstallDisplayName": "${productName}",
       "createDesktopShortcut": true,
       "differentialPackage": true,
-      "perMachine": false 
+      "perMachine": false
     }
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/cli": "^2.10.1",
     "cross-env": "^7.0.3",
     "electron": "^39.2.6",
     "electron-builder": "^24.9.1"

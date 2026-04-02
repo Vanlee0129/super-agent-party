@@ -1,3 +1,3 @@
 fn main() {
-    super_agent_party_lib::run();
+    super_agent_party::run();
 }
