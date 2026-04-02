@@ -6166,7 +6166,7 @@ async def simple_chat_endpoint(request: ChatRequest):
     )
 
 
-from py.task_center import get_task_center
+from py.tasks.manager import get_task_center
 from py.sub_agent import run_subtask_in_background
 
 # --- 新增任务中心 API ---

@@ -1,7 +1,7 @@
 """主智能体使用的任务管理工具"""
 import asyncio
 from typing import Optional
-from py.task_center import get_task_center, TaskStatus
+from py.tasks.manager import get_task_center, TaskStatus
 from py.sub_agent import run_subtask_in_background
 
 # --- Tool Definitions ---
@@ -182,7 +182,7 @@ async def query_task_progress(
 ) -> str:
     """查询任务进度 - 支持单任务精确查询和列表查询"""
     try:
-        from py.task_center import get_task_center, TaskStatus
+        from py.tasks.manager import get_task_center, TaskStatus
         
         task_center = await get_task_center(workspace_dir)
         status_enum = TaskStatus(status) if status else None
