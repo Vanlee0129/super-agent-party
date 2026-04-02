@@ -23,6 +23,15 @@ from py.chat.routes import router as chat_router
 from py.chat.websocket_handler import ChatWebSocketManager
 from py.chat.history import ChatHistory
 from py.chat.streamer import ChatStreamer
+from py.knowledge import router as knowledge_router
+from py.search import router as search_router
+from py.extensions.api import router as extensions_router
+from py.code.api import router as code_router
+from py.vrm.models import get_vrm_model_manager
+from py.vrm.websocket_handler import VRMWebSocket, vrm_connection_manager
+from py.vrm.vmc_protocol import create_vmc_server, VMCServer
+from py.vrm.animation import AnimationController
+from py.vrm.api import router as vrm_router
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +149,21 @@ app.include_router(bots_router)
 # Include chat API router
 app.include_router(chat_router)
 
+# Include extensions API router
+app.include_router(extensions_router)
+
+# Include code execution API router
+app.include_router(code_router)
+
+# Include knowledge base API router
+app.include_router(knowledge_router)
+
+# Include web search API router
+app.include_router(search_router)
+
+# Include VRM API router
+app.include_router(vrm_router)
+
 
 # ==================== HTTP Endpoints ====================
 
@@ -201,6 +225,14 @@ async def handle_jsonrpc(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             result = await handle_chat_complete(params)
         elif method == "chat.complete_stream":
             result = await handle_chat_complete_stream(params)
+        elif method == "chat.send":
+            result = await handle_chat_send(params)
+        elif method == "chat.stream":
+            result = await handle_chat_stream(params)
+        elif method == "chat.history":
+            result = handle_chat_history(params)
+        elif method == "chat.clear":
+            result = handle_chat_clear(params)
         elif method == "skills.list":
             result = handle_skills_list(params)
         elif method == "skills.execute":
@@ -283,6 +315,82 @@ async def handle_chat_complete_stream(params: Dict[str, Any]) -> List[Dict[str, 
         chunks.append(chunk.to_dict() if hasattr(chunk, "to_dict") else chunk)
 
     return chunks
+
+
+async def handle_chat_send(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle non-streaming chat.send."""
+    message = params.get("message", "")
+    model = params.get("model", "gpt-4")
+    provider = params.get("provider", "openai")
+    conversation_id = params.get("conversation_id")
+
+    if not message:
+        raise ValueError("message is required")
+
+    streamer = ChatStreamer()
+    conversation_history = None
+    if conversation_id:
+        conversation_history = ChatHistory.get_messages(conversation_id)
+
+    response_text = await streamer.complete_chat(
+        message, model=model, provider=provider,
+        conversation_history=conversation_history
+    )
+
+    return {
+        "type": "message",
+        "id": str(uuid.uuid4()),
+        "role": "assistant",
+        "content": response_text,
+        "conversation_id": conversation_id,
+    }
+
+
+async def handle_chat_stream(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle streaming chat.stream - returns stream info for SSE."""
+    message = params.get("message", "")
+    model = params.get("model", "gpt-4")
+    provider = params.get("provider", "openai")
+    conversation_id = params.get("conversation_id")
+
+    if not message:
+        raise ValueError("message is required")
+
+    return {
+        "type": "stream_start",
+        "stream_id": str(uuid.uuid4()),
+        "conversation_id": conversation_id,
+    }
+
+
+def handle_chat_history(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle chat.history request."""
+    conversation_id = params.get("conversation_id")
+    limit = params.get("limit", 50)
+
+    if not conversation_id:
+        raise ValueError("conversation_id is required")
+
+    messages = ChatHistory.get_messages(conversation_id, limit=limit)
+    return {
+        "type": "history",
+        "conversation_id": conversation_id,
+        "messages": messages,
+    }
+
+
+def handle_chat_clear(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle chat.clear request."""
+    conversation_id = params.get("conversation_id")
+
+    if not conversation_id:
+        raise ValueError("conversation_id is required")
+
+    ChatHistory.clear_conversation(conversation_id)
+    return {
+        "type": "cleared",
+        "conversation_id": conversation_id,
+    }
 
 
 def handle_skills_list(params: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -391,6 +499,45 @@ def handle_settings_update(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ==================== Main ====================
+
+# ==================== VRM WebSocket Endpoint ====================
+
+_vrm_animation_controller: Optional[AnimationController] = None
+_vrm_vmc_server: Optional[VMCServer] = None
+
+
+@app.websocket("/ws/vrm")
+async def vrm_websocket_endpoint(websocket: WebSocket):
+    """WebSocket endpoint for VRM avatar communication with VMC protocol support."""
+    global _vrm_animation_controller, _vrm_vmc_server
+
+    # Initialize VRM components if needed
+    if _vrm_animation_controller is None:
+        _vrm_animation_controller = AnimationController()
+    if _vrm_vmc_server is None:
+        _vrm_vmc_server = await create_vmc_server()
+
+    client_id = str(id(websocket))
+    await vrm_connection_manager.connect(client_id, websocket)
+
+    # Register with VMC server for broadcasting
+    _vrm_vmc_server.add_ws_client(websocket)
+
+    handler = VRMWebSocket(
+        vmc_server=_vrm_vmc_server,
+        animation_controller=_vrm_animation_controller
+    )
+
+    try:
+        await handler.handle_connection(websocket)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error(f"VRM WebSocket error for client {client_id}: {e}")
+    finally:
+        vrm_connection_manager.disconnect(client_id)
+        _vrm_vmc_server.remove_ws_client(websocket)
+
 
 if __name__ == "__main__":
     import uvicorn
