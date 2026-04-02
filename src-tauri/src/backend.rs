@@ -39,7 +39,7 @@ impl BackendManager {
     pub async fn start(&self, app_handle: tauri::AppHandle) -> Result<StartBackendResult, String> {
         // Check if already running
         {
-            let mut process_guard = self.process.lock().await;
+            let process_guard = self.process.lock().await;
             if process_guard.is_some() {
                 let port_guard = self.port.lock().await;
                 let port = port_guard.unwrap_or(3456);
