@@ -725,6 +725,14 @@ async def lifespan(app: FastAPI):
     else:
         asyncio.create_task(broadcast_settings_update(settings or {}))
 
+    # --- [Phase 2 Startup: Initialize bot managers] ---
+    try:
+        from py.bots.registry import initialize_managers
+        await initialize_managers()
+        logger.info("Bot managers initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize bot managers: {e}")
+
     # --- [启动完成] ---
     yield
 
@@ -9971,7 +9979,7 @@ app.include_router(node_router)
 from py.docker_api import router as docker_router 
 app.include_router(docker_router)
 
-from py.extensions import router as extensions_router
+from py.extensions.api import router as extensions_router
 
 app.include_router(extensions_router)
 
@@ -9993,6 +10001,23 @@ app.include_router(embedding_router)
 
 from py.affection_api import router as affection_router
 app.include_router(affection_router)
+
+
+# ============ Phase 2 API Routers ============
+from py.chat.routes import router as chat_router
+from py.vrm.api import router as vrm_router
+from py.bots.api import router as bots_router
+from py.knowledge.api import router as knowledge_router
+from py.search.api import router as search_router
+from py.code.api import router as code_router
+
+# Include Phase 2 routers (each router has its own prefix defined internally)
+app.include_router(chat_router)
+app.include_router(vrm_router)
+app.include_router(bots_router)
+app.include_router(knowledge_router)
+app.include_router(search_router)
+app.include_router(code_router)
 
 mcp = FastApiMCP(
     app,
