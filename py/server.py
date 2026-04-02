@@ -32,6 +32,8 @@ from py.vrm.websocket_handler import VRMWebSocket, vrm_connection_manager
 from py.vrm.vmc_protocol import create_vmc_server, VMCServer
 from py.vrm.animation import AnimationController
 from py.vrm.api import router as vrm_router
+from py.settings import router as settings_router
+from py.tasks import router as tasks_router
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +165,8 @@ app.include_router(search_router)
 
 # Include VRM API router
 app.include_router(vrm_router)
+app.include_router(settings_router)
+app.include_router(tasks_router)
 
 
 # ==================== HTTP Endpoints ====================
